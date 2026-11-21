@@ -1,7 +1,16 @@
 package com.vivian.reforco_connect.domain;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 @Entity
@@ -13,17 +22,25 @@ public class Instituicao {
     private Long id;
 
     @NotBlank(message = "O nome é obrigatório")
+    @Size(max = 100, message = "O nome deve ter no máximo 100 caracteres")
     @Column(nullable = false, length = 100)
     private String nome;
 
+    @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres")
     @Column(length = 20)
     private String telefone;
 
+    @Size(max = 200, message = "O endereço deve ter no máximo 200 caracteres")
     @Column(length = 200)
     private String endereco;
 
+    // A lista NÃO vai para o JSON: quem aparece no JSON é o lado @ManyToOne
+    // (Professor.instituicao). Isso evita a recursão infinita
+    // instituicao -> professores -> instituicao -> ...
+    // Atenção: cascade ALL => apagar a instituição apaga os professores dela
+    // (e, em cascata, os agendamentos desses professores).
     @OneToMany(mappedBy = "instituicao", cascade = CascadeType.ALL)
-    @com.fasterxml.jackson.annotation.JsonManagedReference
+    @JsonIgnore
     private List<Professor> professores;
 
     // JPA
