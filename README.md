@@ -1,8 +1,25 @@
-# Reforço Connect — Back-end
+# Reforço Connect
 
-API REST (Java 21 + Spring Boot 4 + PostgreSQL) da plataforma Reforço Connect.
+Plataforma que intermedeia o agendamento de aulas de reforço entre instituições
+(ONGs e escolas parceiras), professores voluntários e alunos.
+Projeto Integrador V e Banco de Dados II — UNITAU, Engenharia da Computação.
+
+Equipe: Luis Felipe Ismael da Silva, Samuel de Morais, Vivian Lyvia Márcia da Cunha Portela.
+
+| Pasta / arquivo | O que é |
+|---|---|
+| raiz (`pom.xml`, `src/`) | **Back-end**: API REST em Java 21 + Spring Boot 4 + PostgreSQL |
+| `reforco-connect-front/` | **Front-end**: painel de gestão em Angular |
+| [`COMO_RODAR.md`](COMO_RODAR.md) | **Passo a passo para rodar o projeto do zero** |
+| [`APRESENTACAO.md`](APRESENTACAO.md) | Roteiro da apresentação, demonstração e perguntas prováveis |
+
+---
+
+# Back-end — detalhes técnicos
 
 ## 1. Preparar o banco (uma vez só)
+
+> Instruções completas, inclusive instalação, em [`COMO_RODAR.md`](COMO_RODAR.md).
 
 Com o PostgreSQL instalado, abra o `psql` como superusuário:
 

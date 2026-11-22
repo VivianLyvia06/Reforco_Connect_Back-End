@@ -1,0 +1,115 @@
+<header class="page-header">
+  <h1>Agendamentos</h1>
+  <span class="tag">Gestão institucional</span>
+</header>
+
+<div class="page-body">
+  <div class="page-intro">
+    <p>Acompanhe as aulas marcadas entre alunos e voluntários.</p>
+    <button class="btn btn-primary" (click)="novo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Novo agendamento
+    </button>
+  </div>
+
+  @if (erroLista) {
+    <div class="alert alert-erro">{{ erroLista }}</div>
+  }
+
+  <div class="crud" [class.with-panel]="painelAberto">
+    <section class="card">
+      <div class="card-header">
+        <h2>Agendamentos cadastrados</h2>
+        <span class="badge">{{ doisDigitos(agendamentos.length) }}</span>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Aluno</th>
+            <th>Professor</th>
+            <th>Data e hora</th>
+            <th>Duração</th>
+            <th>Status</th>
+            <th style="width: 120px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (agendamento of agendamentos; track agendamento.id) {
+            <tr [class.selected]="agendamento.id === idEmEdicao">
+              <td class="strong">{{ agendamento.alunoNome }}</td>
+              <td>{{ nomeDoProfessor(agendamento) }}</td>
+              <td class="nowrap">{{ formatarDataHora(agendamento.dataHora) }}</td>
+              <td class="nowrap">{{ agendamento.duracaoMinutos }} min</td>
+              <td><span class="status" [class]="classeDoStatus(agendamento.status)">{{ agendamento.status }}</span></td>
+              <td>
+                <div class="actions">
+                  <button class="icon-btn edit" title="Editar" (click)="editar(agendamento)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                  </button>
+                  <button class="icon-btn delete" title="Excluir" (click)="excluir(agendamento)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="empty">Nenhum agendamento cadastrado.</td></tr>
+          }
+        </tbody>
+      </table>
+      <div class="card-footer">{{ agendamentos.length }} agendamentos cadastrados</div>
+    </section>
+
+    @if (painelAberto) {
+      <form class="panel" (ngSubmit)="salvar()">
+        <div class="panel-header" [class.novo]="idEmEdicao === null">
+          <div>
+            <h2>{{ idEmEdicao === null ? 'Novo agendamento' : 'Editar agendamento' }}</h2>
+            <p>{{ idEmEdicao === null ? 'Marque uma aula de reforço.' : 'Remarque ou atualize o status da aula.' }}</p>
+          </div>
+          <button type="button" class="icon-btn close" title="Fechar" (click)="fechar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="panel-body">
+          @if (erroFormulario) {
+            <div class="alert alert-erro">{{ erroFormulario }}</div>
+          }
+          <div class="field">
+            <label for="alunoNome">Nome do aluno</label>
+            <input id="alunoNome" name="alunoNome" [(ngModel)]="formulario.alunoNome" maxlength="100" placeholder="Ex.: Ana Clara Souza" />
+          </div>
+          <div class="field">
+            <label for="professor">Professor</label>
+            <select id="professor" name="professor" [(ngModel)]="formulario.professorId">
+              <option [ngValue]="null" disabled>Selecione…</option>
+              @for (professor of professores; track professor.id) {
+                <option [ngValue]="professor.id">{{ professor.nome }} · {{ professor.disciplina }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="dataHora">Data e hora</label>
+            <input id="dataHora" name="dataHora" type="datetime-local" [(ngModel)]="formulario.dataHora" />
+          </div>
+          <div class="field">
+            <label for="duracao">Duração em minutos</label>
+            <input id="duracao" name="duracao" type="number" min="1" step="15" [(ngModel)]="formulario.duracaoMinutos" />
+          </div>
+          <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status" [(ngModel)]="formulario.status">
+              @for (status of statusDisponiveis; track status) {
+                <option [ngValue]="status">{{ status }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <button type="button" class="btn btn-secondary" (click)="fechar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando…' : 'Salvar' }}</button>
+        </div>
+      </form>
+    }
+  </div>
+</div>

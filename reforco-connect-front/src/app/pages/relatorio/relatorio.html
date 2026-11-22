@@ -1,0 +1,72 @@
+<header class="page-header">
+  <h1>Painel de engajamento</h1>
+  <span class="tag">Gestão institucional</span>
+</header>
+
+<div class="page-body">
+  <div class="page-intro">
+    <p>Veja o alcance do trabalho dos voluntários.</p>
+  </div>
+
+  @if (erro) {
+    <div class="alert alert-erro">{{ erro }}</div>
+  }
+
+  <section class="stats">
+    <div class="stat azul">
+      <div class="stat-value">{{ doisDigitos(totalProfessores) }}</div>
+      <div class="stat-label">Professores cadastrados</div>
+    </div>
+    <div class="stat lavanda">
+      <div class="stat-value">{{ doisDigitos(totalAgendamentos) }}</div>
+      <div class="stat-label">Agendamentos realizados</div>
+    </div>
+    <div class="stat pessego">
+      <div class="stat-value">{{ formatarHoras(totalHoras) }}h</div>
+      <div class="stat-label">Horas de reforço</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2>Engajamento por professor</h2>
+      <span class="hint">Mais agendamentos primeiro</span>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width: 30%">Professor</th>
+          <th>Instituição</th>
+          <th style="width: 16%">Agendamentos ↓</th>
+          <th style="width: 12%">Horas</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (carregando) {
+          <tr><td colspan="4" class="empty">Carregando…</td></tr>
+        }
+        @for (linha of linhas; track linha.id) {
+          <tr>
+            <td class="strong">{{ linha.nome }}</td>
+            <td>{{ linha.instituicao }}</td>
+            <!-- zero agendamentos em cinza: é a prova visual do LEFT JOIN -->
+            <td [class.muted]="linha.totalAgendamentos === 0">{{ linha.totalAgendamentos }}</td>
+            <td [class.muted]="linha.totalAgendamentos === 0">{{ formatarHoras(linha.totalHoras) }} h</td>
+          </tr>
+        } @empty {
+          @if (!carregando) {
+            <tr><td colspan="4" class="empty">Nenhum professor cadastrado.</td></tr>
+          }
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" class="total-label">{{ totalProfessores }} professores no total</td>
+          <td class="total">{{ totalAgendamentos }} agendamentos</td>
+          <td class="total">{{ formatarHoras(totalHoras) }} h</td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+</div>

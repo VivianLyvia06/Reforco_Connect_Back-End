@@ -1,0 +1,103 @@
+<header class="page-header">
+  <h1>Professores</h1>
+  <span class="tag">Gestão institucional</span>
+</header>
+
+<div class="page-body">
+  <div class="page-intro">
+    <p>Organize os voluntários e seus vínculos com as instituições.</p>
+    <button class="btn btn-primary" (click)="novo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Novo professor
+    </button>
+  </div>
+
+  @if (erroLista) {
+    <div class="alert alert-erro">{{ erroLista }}</div>
+  }
+
+  <div class="crud" [class.with-panel]="painelAberto">
+    <section class="card">
+      <div class="card-header">
+        <h2>Professores cadastrados</h2>
+        <span class="badge">{{ doisDigitos(professores.length) }}</span>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Disciplina</th>
+            <th>Instituição</th>
+            <th style="width: 120px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (professor of professores; track professor.id) {
+            <tr [class.selected]="professor.id === idEmEdicao">
+              <td class="strong">{{ professor.nome }}</td>
+              <td>{{ professor.disciplina }}</td>
+              <td>{{ nomeDaInstituicao(professor) }}</td>
+              <td>
+                <div class="actions">
+                  <button class="icon-btn edit" title="Editar" (click)="editar(professor)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>
+                  </button>
+                  <button class="icon-btn delete" title="Excluir" (click)="excluir(professor)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="empty">Nenhum professor cadastrado.</td></tr>
+          }
+        </tbody>
+      </table>
+      <div class="card-footer">{{ professores.length }} professores cadastrados</div>
+    </section>
+
+    @if (painelAberto) {
+      <form class="panel" (ngSubmit)="salvar()">
+        <div class="panel-header" [class.novo]="idEmEdicao === null">
+          <div>
+            <h2>{{ idEmEdicao === null ? 'Novo professor' : 'Editar professor' }}</h2>
+            <p>{{ idEmEdicao === null ? 'Cadastre um novo voluntário.' : 'Atualize os dados do voluntário.' }}</p>
+          </div>
+          <button type="button" class="icon-btn close" title="Fechar" (click)="fechar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="panel-body">
+          @if (erroFormulario) {
+            <div class="alert alert-erro">{{ erroFormulario }}</div>
+          }
+          <div class="field">
+            <label for="nome">Nome</label>
+            <input id="nome" name="nome" [(ngModel)]="formulario.nome" maxlength="100" placeholder="Ex.: Juliana Costa" />
+          </div>
+          <div class="field">
+            <label for="disciplina">Disciplina</label>
+            <input id="disciplina" name="disciplina" [(ngModel)]="formulario.disciplina" maxlength="50" placeholder="Ex.: Português" />
+          </div>
+          <div class="field">
+            <label for="fotoUrl">URL da foto</label>
+            <input id="fotoUrl" name="fotoUrl" [(ngModel)]="formulario.fotoUrl" placeholder="https://exemplo.org/fotos/juliana.jpg" />
+          </div>
+          <div class="field">
+            <label for="instituicao">Instituição</label>
+            <select id="instituicao" name="instituicao" [(ngModel)]="formulario.instituicaoId">
+              <option [ngValue]="null" disabled>Selecione…</option>
+              @for (instituicao of instituicoes; track instituicao.id) {
+                <option [ngValue]="instituicao.id">{{ instituicao.nome }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <button type="button" class="btn btn-secondary" (click)="fechar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando…' : 'Salvar' }}</button>
+        </div>
+      </form>
+    }
+  </div>
+</div>
