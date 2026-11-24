@@ -180,6 +180,126 @@ SELECT p.id, p.nome, i.nome AS instituicao,
 
 ---
 
+## Requisitos do quadro × onde estão no projeto
+
+| Pedido no quadro | Onde está |
+|---|---|
+| Back-end com endpoints de cadastro | 3 controllers, cada um com `GET`, `GET /{id}`, `POST`, `PUT`, `DELETE` |
+| Mínimo de 3 tabelas com relacionamentos | `instituicao`, `professor`, `agendamento` |
+| Pelo menos 1 relacionamento 1:N | dois: instituição 1:N professor e professor 1:N agendamento |
+| Pelo menos 1 endpoint de agregação com Native Query | `GET /professores/relatorio-engajamento` (`ProfessorRepository`) |
+| Lista de endpoints e diagrama (entrega de 06/10) | endpoints iguais à lista; diferenças do diagrama explicadas na parte 3 |
+
+---
+
+## Material de apoio: código, JPA e tabelas
+
+### As tabelas no banco (como o Hibernate gerou)
+
+```
+instituicao
+  id          bigint        PK, identity
+  nome        varchar(100)  NOT NULL
+  telefone    varchar(20)
+  endereco    varchar(200)
+
+professor
+  id              bigint        PK, identity
+  nome            varchar(100)  NOT NULL
+  disciplina      varchar(50)   NOT NULL
+  foto_url        varchar(255)
+  instituicao_id  bigint        NOT NULL  FK → instituicao(id)
+
+agendamento
+  id               bigint        PK, identity
+  aluno_nome       varchar(100)  NOT NULL
+  data_hora        timestamp     NOT NULL
+  duracao_minutos  integer       NOT NULL  DEFAULT 60  CHECK (duracao_minutos >= 1)
+  status           varchar(20)   NOT NULL
+  professor_id     bigint        NOT NULL  FK → professor(id)
+```
+
+**Para mostrar ao vivo:** IntelliJ → aba **Database** (ícone de cilindro, à direita) → **+** →
+**Data Source → PostgreSQL** → `localhost`, `5432`, banco `reforco_connect`, usuário/senha `aluno`
+→ expandir **schemas → public → tables**. Ou no SQL Shell (psql): `\c reforco_connect` e `\d professor`.
+
+Dois detalhes que valem pontos:
+- O `CHECK (duracao_minutos >= 1)` foi criado pelo Hibernate a partir do `@Min(1)` da entidade:
+  a regra do Java virou restrição do banco.
+- **Não existe `ON DELETE CASCADE` no banco.** A exclusão em cascata é feita pelo JPA
+  (`cascade = CascadeType.ALL`): o Hibernate apaga primeiro os agendamentos e depois o professor.
+  Um `DELETE FROM professor WHERE id = 1` direto no SQL seria recusado pela chave estrangeira.
+
+### O que é o JPA
+
+> "JPA é a especificação do Java para mapeamento objeto-relacional (ORM). Escrevemos classes
+> Java anotadas — as entidades — e o Hibernate, que é a implementação usada pelo Spring, traduz
+> isso em tabelas e em SQL. Com `ddl-auto=update`, ele cria e atualiza as tabelas a partir das
+> entidades."
+
+Exemplo com `Professor.java`:
+
+| Anotação no código | O que vira no banco |
+|---|---|
+| `@Entity` + `@Table(name = "professor")` | a classe vira a tabela `professor` |
+| `@Id` + `@GeneratedValue(strategy = IDENTITY)` | `id` é a chave primária, gerada pelo banco |
+| `@Column(nullable = false, length = 100)` em `nome` | `nome varchar(100) NOT NULL` |
+| `@Column(name = "foto_url")` em `fotoUrl` | atributo `fotoUrl` vira a coluna `foto_url` |
+| `@ManyToOne` + `@JoinColumn(name = "instituicao_id", nullable = false)` | coluna `instituicao_id NOT NULL` com FK para `instituicao` |
+| `@OneToMany(mappedBy = "instituicao")` em `Instituicao.professores` | **não cria coluna**; é o lado inverso do mesmo relacionamento |
+
+**O relacionamento 1:N:**
+
+> "Num relacionamento 1:N, a chave estrangeira fica sempre no lado N. Por isso o `@ManyToOne`
+> está em `Professor`, com o `@JoinColumn`: ele é o dono do relacionamento e gera a coluna
+> `instituicao_id`. O `@OneToMany(mappedBy = "instituicao")` em `Instituicao` só permite navegar
+> da instituição para a lista de professores. O `mappedBy` diz ao JPA que a FK já está mapeada do
+> outro lado, para ele não criar uma tabela extra."
+
+### O Repository
+
+```java
+public interface ProfessorRepository extends JpaRepository<Professor, Long> { ... }
+```
+
+> "É só uma interface. O Spring Data cria a implementação em tempo de execução, e só por estender
+> `JpaRepository` ganhamos `findAll`, `findById`, `save` e `delete`. O `save` faz INSERT quando o
+> id é nulo e UPDATE quando já existe. A única consulta escrita à mão é a de agregação, com
+> `@Query(nativeQuery = true)`."
+
+### O caminho de uma requisição
+
+Exemplo: **Salvar** um professor novo.
+
+1. **Angular** (`professor.service.ts`) envia `POST /professores` com `{"nome": ..., "instituicao": {"id": 1}}`.
+2. **Controller** (`ProfessorController`): `@RequestBody` converte o JSON em `Professor`; `@Valid` confere as anotações → se falhar, 400.
+3. **Service** (`ProfessorService`): busca a instituição pelo id (404 se não existir), associa e chama `repository.save`.
+4. **Repository / Hibernate** gera o `INSERT INTO professor (...)`.
+5. **PostgreSQL** confere NOT NULL e FK e grava.
+6. O objeto salvo volta como JSON com **201 Created**.
+
+**Truque:** com `show-sql=true`, cada clique no front mostra no console do IntelliJ o SQL que o
+Hibernate gerou (`insert into professor ...`, `select ...`). Mostrar isso ao vivo comprova a ponte
+entre JPA e banco.
+
+### Onde ver os códigos HTTP (200, 404...)
+
+- **No navegador:** F12 → aba **Rede/Network** → **Fetch/XHR** → usar o front. Coluna **Status** e,
+  clicando na linha, a aba **Resposta** com o JSON.
+- **No Postman:**
+
+| Código | Requisição |
+|---|---|
+| 200 | `GET /professores/1` |
+| 201 | `POST /instituicoes` com `{"nome": "ONG Teste"}` |
+| 204 | `DELETE /instituicoes/{id da ONG Teste}` |
+| 400 | `POST /professores` com `{}` (lista de campos inválidos) |
+| 400 | `POST /agendamentos` com `"dataHora": "25/11/2026"` (formato inválido) |
+| 404 | `GET /professores/999` |
+| 409 | `POST /professores` com `fotoUrl` maior que 255 caracteres: quem recusa é o PostgreSQL (`varchar(255)`) |
+
+---
+
 ## Perguntas prováveis do professor
 
 **Por que LEFT JOIN e não INNER JOIN?**
@@ -225,6 +345,27 @@ divide por 60.0 (o `.0` evita divisão inteira) e arredonda para uma casa decima
 Pelo Hibernate, a partir das entidades JPA (`ddl-auto=update`). As chaves estrangeiras e os
 NOT NULL vêm das anotações `@ManyToOne`, `@JoinColumn(nullable = false)` e
 `@Column(nullable = false)`. Os dados de exemplo entram pelo `data.sql`.
+
+**Qual a diferença entre JPA e Hibernate?**
+JPA é a especificação (regras e anotações); Hibernate é a implementação que executa.
+
+**O que o `ddl-auto=update` faz?**
+Na inicialização compara as entidades com o banco e cria tabelas/colunas que faltam, sem apagar
+nada. Em produção o normal seria uma ferramenta de migração (ex.: Flyway).
+
+**Por que `GenerationType.IDENTITY`?**
+O id é gerado pelo PostgreSQL (`generated by default as identity`), não pelo Java.
+
+**Por que `@JsonIgnore` nas listas?**
+Professor aponta para instituição e instituição tem a lista de professores; serializar as duas
+pontas gera um ciclo infinito. Só o lado `@ManyToOne` vai para o JSON.
+
+**Onde está a regra de que todo professor precisa de instituição?**
+Em três camadas: no banco (`instituicao_id NOT NULL`), na entidade (`@NotNull`) e no service
+(busca a instituição antes de salvar).
+
+**Para que serve o `@Transactional` no service?**
+As operações do método acontecem numa transação só: ou tudo é gravado, ou nada.
 
 **Por que o front e o back rodam em portas diferentes? Isso não dá problema?**
 Por padrão o navegador bloquearia (política de mesma origem). Liberamos a origem do Angular,
